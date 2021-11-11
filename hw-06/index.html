@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Socket</title>
+    <script src="https://cdn.socket.io/4.2.0/socket.io.min.js" integrity="sha384-PiBR5S00EtOj2Lto9Uu81cmoyZqR57XcOna1oAuVuIEjzj0wpqDVfD0JA9eXlRsj" crossorigin="anonymous"></script>
+</head>
+<body>
+    <h3>Connected users: </h3>
+    <div id="users"></div>
+    <h3>Chat: </h3>
+    <form>
+        <input id="input" type="text" autofocus>
+        <button id="button">Send</button>
+    </form>
+    <div id="messages"></div>
+
+<script>
+    const socket = io('localhost:5555');
+    const messagesBlock = document.querySelector('#messages');
+    const usersBlock = document.querySelector('#users');
+    const sendButton = document.querySelector('#button');
+    const input = document.querySelector('#input');
+    let userName = '';
+
+    sendButton.onclick = (e) => {
+        // Чтоб сообщение по вводу отправлялось, а не только по кнопке
+        e.preventDefault();
+        const data = {
+            user: userName,
+            message: input.value,
+        };
+
+        socket.emit('client-msg', data);
+
+        input.value = '';
+    }
+
+    // users logic
+    socket.on('connect', () => {
+        userName = prompt('Welcome. Enter your name:', 'Guest');
+        socket.emit('user-connect', userName)
+    });
+
+    socket.on('disconnect', () => {
+        console.log("You've been disconected");
+    })
+
+    socket.on('reconnect', () => {
+        // reconnect событие существует только для клиента. Для сервера его нет.
+        console.log("Reconnect sucessful");
+        socket.emit('user-reconnect', userName)
+    })
+
+    socket.on('server-users-connected', data => {
+        let usersDivs ='';
+        data.forEach(element => {
+            usersDivs = usersDivs + `<div>${element.user}</div>`;
+        });
+        usersBlock.innerHTML = usersDivs;
+    });
+    // end of users logic
+
+    socket.on('server-msg', data => {
+        messagesBlock.insertAdjacentHTML('afterbegin', `<div>${data.user}: ${data.message}</div>`);
+    });
+</script>
+</body>
+</html>
